@@ -2,7 +2,7 @@
 "transposeee"
 
 
-def matrix_transpose(matrix):    
+def matrix_transpose(matrix):
     '''tessssssstttttt'''
     result = []
     current_array = []
