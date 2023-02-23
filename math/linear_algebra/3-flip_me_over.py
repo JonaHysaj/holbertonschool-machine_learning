@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+
+
 def matrix_transpose(matrix):
-    matrix_transpose = __import__('3-flip_me_over').matrix_transpose
+matrix_transpose = __import__('3-flip_me_over').matrix_transpose
     result = []
     current_array = []
     for j in range(0, len(matrix[0])):
