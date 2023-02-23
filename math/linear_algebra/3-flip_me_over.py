@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 "transposeee"
 
-def matrix_transpose(matrix):
-    
-    '''tessssssssssssstttttttttttt'''
+
+def matrix_transpose(matrix):    
+    '''tessssssstttttt'''
     result = []
     current_array = []
     for j in range(0, len(matrix[0])):
         current_array = [[i[j] for i in matrix]]
         result = result+current_array
     return result
+
+
 mat1 = [[1, 2], [3, 4]]
 (mat1)
 matrix_transpose(mat1)
