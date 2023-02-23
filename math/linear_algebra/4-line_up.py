@@ -8,8 +8,8 @@ def add_arrays(vec1, vec2):
     if(len(vec1) != len(vec2)):
         return None
     else:
-        for i in vec1:
-            result.append(vec1[i-1] + vec2[i-1])
+        for i in range(len(vec1)):
+            result.append(vec1[i] + vec2[i])
         return result
 
 
