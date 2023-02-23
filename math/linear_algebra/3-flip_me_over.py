@@ -2,6 +2,7 @@
 "transposeee"
 
 def matrix_transpose(matrix):
+    
     '''tessssssssssssstttttttttttt'''
     result = []
     current_array = []
@@ -9,8 +10,6 @@ def matrix_transpose(matrix):
         current_array = [[i[j] for i in matrix]]
         result = result+current_array
         return result
-
-
     mat1 = [[1, 2], [3, 4]]
     (mat1)
     matrix_transpose(mat1)
