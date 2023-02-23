@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 def matrix_shape(matrix):
+    matrix_shape = __import__('2-size_me_please').matrix_shape
     result = []
     while (type(matrix) is list):
         result.append(len(matrix))
