@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
+"""
+simply a module documentation line.
+"""
 import numpy as np
-'''Cat got your tounge '''
 
 
 def np_cat(mat1, mat2, axis=0):
-    '''Cat got your tounge'''
-    arr = np.concatenate((mat1, mat2), axis=axis)
-    return arr
+    """
+    Function that concatenates two matrices along a specific axis:
+    """
+    return np.concatenate((mat1, mat2), axis)
