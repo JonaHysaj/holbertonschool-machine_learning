@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """simply a module documentation line."""
-
 import numpy as np
 
 
