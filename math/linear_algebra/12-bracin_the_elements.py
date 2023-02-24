@@ -1,6 +1,5 @@
-
 #!/usr/bin/env python3
-"""simply a module documentation line."""
+'''simply a module documentation line.'''
 
 
 def np_elementwise(mat1, mat2):
