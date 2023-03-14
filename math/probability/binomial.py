@@ -1,78 +1,57 @@
 #!/usr/bin/env python3
-"""
-Representing a binomial distribution:
-"""
+"""Binomial class for distribution"""
 
 
 class Binomial:
-    """
-    work with Binomial distribution
-    """
+    """Binomial class for distribution"""
+    e = 2.7182818285
+
     def __init__(self, data=None, n=1, p=0.5):
-        """
-        - Initialization contructor.
-        - Using a `method-of-moments` estimator for p and n.
-        """
-        if data is None:
-            if n <= 0:
-                raise ValueError("n must be a positive value")
-            if not 0 < p < 1:
-                raise ValueError("p must be greater than 0 and less than 1")
-            else:
-                self.p = float(p)
-                self.n = int(n)
-        else:
+        self.n = int(n)
+        self.p = float(p)
+        if n < 1:
+            raise ValueError("n must be a positive value")
+        if p <= 0 or p >= 1:
+            raise ValueError("p must be greater than 0 and less than 1")
+        if data is not None:
             if type(data) is not list:
                 raise TypeError("data must be a list")
             if len(data) < 2:
                 raise ValueError("data must contain multiple values")
-
-            Expectation = sum(data)/len(data)
-            Variance = sum([(Xi - Expectation) ** 2 for Xi in data]) /\
-                       len(data)
-            self.p = 1 - Variance / Expectation
-            self.n = round(Expectation / self.p)
-            self.p = Expectation / self.n
-
-    def Factorial(n):
-        """
-        calculate factorial
-        """
-        if n == 0 or n == 1:
-            return 1
-        k = 1
-        for i in range(1, n + 1):
-            k *= i
-        return k
-
+            mean = sum(data) / len(data)
+            var = sum(map(lambda i: (i - mean) ** 2, data)) / len(data)
+            self.p = 1 - ((var) / mean)
+            self.n = int(round(mean / self.p))
+            self.p = mean / self.n
+            
     def pmf(self, k):
-        """
-    Calculates the value of the PMF for a given number of “successes”
-    k is the number of “successes”
-        If k is not an integer, convert it to an integer
-        If k is out of range, return 0
-    Returns the PMF value for k
-        """
+        """Probability Mass Function for binomial"""
         if type(k) is not int:
             k = int(k)
-        if k < 0
+        if k < 0:
             return 0
-        return Binomial.Factorial(self.n) /\
-            (Binomial.Factorial(k) * Binomial.Factorial(self.n - k)) *\
-            pow(self.p, k) * pow(1 - self.p, self.n - k)
+        n_factorial = 1
+        for i in range(1, self.n + 1):
+            n_factorial *= i
+        x_factorial = 1
+        for i in range(1, k + 1):
+            x_factorial *= i
+        op_factorial = 1
+        for i in range(1, (self.n - k) + 1):
+            op_factorial *= i
+        combinatory = (n_factorial) / (x_factorial * op_factorial)
+        pmf = combinatory * (self.p ** k) * ((1 - self.p) ** (self.n - k))
+        return pmf
 
     def cdf(self, k):
         """
-        Calculates the value of the CDF for a given number of “successes”
-        k is the number of “successes”
-            If k is not an integer, convert it to an integer
-            If k is out of range, return 0
-        Returns the CDF value for k
-        NOTE: using the pmf method
+        Cumulative Distribution Function for binomial
         """
         if type(k) is not int:
             k = int(k)
-        if k > self.n or k < 0:
+        if k < 0:
             return 0
-        PMFs_to_k = map(self.pmf, range(0, k + 1))
-        return sum(PMFs_to_k)
+        cdf = 0
+        for i in range(k + 1):
+            cdf += Binomial.pmf(self, i)
+        return cdf
