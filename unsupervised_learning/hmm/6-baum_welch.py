@@ -1,211 +1,244 @@
-
-dule contains function that performs the
-Baum-Welch algorithm for finding locally optimal
-transition and emission probabilities for a Hidden Markov Model.
+#!/usr/bin/env python3
 """
-
-
+6-baum_welch.py
+"""
 import numpy as np
 
 
 def forward(Observation, Emission, Transition, Initial):
     """
-    Performs the forward algorithm for a hidden markov model.
-
-    Args:
-        Observation: numpy.ndarray - (T,) that contains the index of
-        the observation.
-            - T: Number of observations.
-        Emission: numpy.ndarray - (N, M) Emission probability of a specific
-        observation given a hidden state.
-            - Emission[i, j]: Probability of observing j given the hidden
-            state i.
-            - N: Number of hidden states.
-            - M: Number of all possible observations.
-        Transition: numpy.ndarray - (N, N) Transition probabilities.
-            - Transition[i, j]: Probability of transitioning from the hidden
-            state i to j.
-        Initial: numpy.ndarray - (N, 1) Probability of starting in a particular
-        hidden state.
-
-    Return: P, F, or None, None on failure
-        P: Likelihood of the observations given the model.
-        F: numpy.ndarray of shape (N, T) containing the forward path
-        probabilities.
-            - F[i, j]: Probability of being in hidden state i at time j given
-            the previous observations.
+    function that performs the forward algorithm for a hidden markov model
     """
 
-    if type(Observation) is not np.ndarray or Observation.ndim != 1:
+    # Initial: shape (N, 1), N: number of hidden states
+    if not isinstance(Initial, np.ndarray) or Initial.ndim != 2:
         return None, None
-    if Observation.shape[0] == 0:
+    if Initial.shape[1] != 1:
         return None, None
-    if type(Emission) is not np.ndarray or Emission.ndim != 2:
+    if not np.isclose(np.sum(Initial, axis=0), [1])[0]:
         return None, None
-    if type(Transition) is not np.ndarray or Transition.ndim != 2:
+    # Transition: shape (N, N)
+    if not isinstance(Transition, np.ndarray) or Transition.ndim != 2:
         return None, None
-    if type(Initial) is not np.ndarray or len(Initial) != Transition.shape[0]:
+    if Transition.shape[0] != Initial.shape[0]:
+        return None, None
+    if Transition.shape[1] != Initial.shape[0]:
+        return None, None
+    if not np.isclose(np.sum(Transition, axis=1),
+                      np.ones(Initial.shape[0])).all():
+        return None, None
+    # Observation: shape (T,), T: number of observations
+    if not isinstance(Observation, np.ndarray) or Observation.ndim != 1:
+        return None, None
+    # Emission: shape (N, M), M: number of all possible observations
+    if not isinstance(Emission, np.ndarray) or Emission.ndim != 2:
+        return None, None
+    if not np.sum(Emission, axis=1).all():
+        return None, None
+    if not np.isclose(np.sum(Emission, axis=1),
+                      np.ones(Emission.shape[0])).all():
         return None, None
 
-    n, m = Emission.shape
+    # N: Number of hidden states
+    N = Initial.shape[0]
+    # T: Number of observations
+    T = Observation.shape[0]
 
-    # N x 1 (time step 0)
-    F = (Initial.T * Emission[:, Observation[0]]).T
+    # Initialize F (equivalent to alpha): shape (N, T)
+    F = np.zeros((N, T))
+    index = Observation[0]
+    Emission_idx = Emission[:, index]
+    F[:, 0] = Initial.T * Emission_idx
 
-    for t in range(1, Observation.shape[0]):
-        rt = F[:, t-1].T * Transition.T.reshape(n, 1, n)
-        rt = rt * Emission[:, Observation[t]].reshape(n, 1, 1)
-        F = np.concatenate((F, rt.sum(-1)), axis=1)
+    # Iterate over N and T to compose F (alpha)
+    # F: shape (N, T), containing the forward path probabilities
+    for j in range(1, T):
+        for i in range(N):
+            # F[i, j]: probability of being in hidden state i at time j
+            # given the previous observations
+            F[i, j] = np.sum(Emission[i, Observation[j]]
+                             * Transition[:, i] * F[:, j - 1], axis=0)
+    # Evaluate the likelihood of the obervations given the model from F
+    # Sum over the N states of the last event/observation
+    P = np.sum(F[:, T-1:], axis=0)[0]
 
-    return np.sum(F[:, -1]), F
+    return P, F
 
 
 def backward(Observation, Emission, Transition, Initial):
     """
-    Performs the backward algorithm for a hidden markov model.
-
-    Args:
-        Observation:numpy.ndarray - (T,) that contains the index of the
-        observation.
-            T: Number of observations.
-        Emission: numpy.ndarray - (N, M) Emission probabilities of a specific
-        observation given a hidden state.
-            Emission[i, j]: Probability of observing j given the hidden
-            state i.
-            N: Number of hidden states.
-            M: Number of all possible observations.
-        Transition: 2D numpy.ndarray - (N, N) Transition probabilities.
-            Transition[i, j] Probability of transitioning from the hidden
-            state i to j.
-        Initial a numpy.ndarray - (N, 1) Probability of starting in a
-        particular hidden state.
-
-    Return: P, B, or None, None
-        P: Likelihood of the observations given the model.
-        B: numpy.ndarray - (N, T) Backward path probabilities.
-        B[i, j]: Probability of generating the future observations from
-        hidden state i at time j.
+    function that performs the backward algorithm for a hidden markov model
     """
 
-    if type(Observation) is not np.ndarray or Observation.ndim != 1:
+    # Initial: shape (N, 1), N: number of hidden states
+    if not isinstance(Initial, np.ndarray) or Initial.ndim != 2:
         return None, None
-    if Observation.shape[0] == 0:
+    if Initial.shape[1] != 1:
         return None, None
-    if type(Emission) is not np.ndarray or Emission.ndim != 2:
+    if not np.isclose(np.sum(Initial, axis=0), [1])[0]:
         return None, None
-    if type(Transition) is not np.ndarray or Transition.ndim != 2:
+    # Transition: shape (N, N)
+    if not isinstance(Transition, np.ndarray) or Transition.ndim != 2:
         return None, None
-    if type(Initial) is not np.ndarray or len(Initial) != Transition.shape[0]:
+    if Transition.shape[0] != Initial.shape[0]:
+        return None, None
+    if Transition.shape[1] != Initial.shape[0]:
+        return None, None
+    if not np.isclose(np.sum(Transition, axis=1),
+                      np.ones(Initial.shape[0])).all():
+        return None, None
+    # Observation: shape (T,), T: number of observations
+    if not isinstance(Observation, np.ndarray) or Observation.ndim != 1:
+        return None, None
+    # Emission: shape (N, M), M: number of all possible observations
+    if not isinstance(Emission, np.ndarray) or Emission.ndim != 2:
+        return None, None
+    if not np.sum(Emission, axis=1).all():
+        return None, None
+    if not np.isclose(np.sum(Emission, axis=1),
+                      np.ones(Emission.shape[0])).all():
         return None, None
 
-    N, M = Emission.shape
-    T = Observation.size
+    # N: Number of hidden states
+    N = Initial.shape[0]
+    # T: Number of observations
+    T = Observation.shape[0]
 
-    B = np.ones((N, T), dtype="float")
+    # Initialize B (equivalent to beta): shape (N, T)
+    B = np.zeros((N, T))
+    B[:, T - 1] = np.ones((N))
 
-    for t in range(T-2, -1, -1):
-        mat = (Emission[:, Observation[t+1]] * Transition.reshape(N, 1, N))
-        mat = (B[:, t+1] * mat).reshape(N, N).sum(axis=1)
+    # Iterate over N and T to compose B (beta)
+    # B: shape (N, T), containing the backward path probabilities
+    for j in range(T - 2, -1, -1):
+        for i in range(N):
+            # B[i, j]: the probability of generating the future observations
+            # from hidden state i at time j
+            B[i, j] = np.sum(B[:, j + 1] * Emission[:, Observation[j + 1]]
+                             * Transition[i, :], axis=0)
+    # Evaluate the likelihood of the observations given the model from B
+    # Sum over the N states of the first event/observation
+    P = np.sum(Initial.T * Emission[:, Observation[0]] * B[:, 0], axis=1)[0]
 
-        B[:, t] = mat
-
-    P = (Initial.T * Emission[:, Observation[0]] * B[:, 0])
-
-    return P.sum(axis=1)[0], B
+    return P, B
 
 
-def EM(Observation, Transition, Emission, Initial):
+def baum_welch(Observations, Transition, Emission, Initial, iterations=1000):
     """
-    Expectation Maximization algorithm for updating transition,
-    emission, and initial state probabilities to achieve those which
-    best generates the observations.
-
-    Args:
-        Observations: numpy.ndarray - (T,) Index of the observation.
-            T: Number of observations.
-        Transition: numpy.ndarray - (M, M) Transition probabilities.
-            M: Number of hidden states.
-        Emission: numpy.ndarray - (M, N) Emission probabilities.
-            N: Number of output states.
-        Initial: numpy.ndarray - (M, 1) Starting probabilities.
-
-    Return:
-        Emission, Transition, Initial after one update step.
-    """
-
-    T = Observation.size
-    M, N = Emission.shape
-    _, F = forward(Observation, Emission, Transition, Initial)
-    _, B = backward(Observation, Emission, Transition, Initial)
-
-    # F[i, j] is the probability of being in hidden state i at time j given
-    # the previous observations.
-
-    # B[i, j] is the probability of generating the future observations from
-    # hidden state i at time j.
-
-    Xi = np.zeros((T, M, M))
-
-    for t in range(T):
-        if t == T - 1:
-            op = F[:, t].reshape(M, 1) * Transition # Emission.sum(axis=1)
-            Xi[t, :, :] = op.copy()
-            break
-
-        op = F[:, t].reshape(M, 1) * Transition * Emission[:, Observation[t+1]]
-        op = op * B[:, t+1]
-        Xi[t, :, :] = op.copy()
-
-    Xi = Xi / Xi.sum(axis=(1, 2)).reshape(T, 1, 1)
-
-    Transition = (Xi[:T-1, :, :].sum(axis=0) /
-                  Xi[:T-1, :, :].sum(axis=(0, 2)).reshape(M, 1))
-
-    for k in range(N):
-        idxs = Observation[:T] == k
-        Emission[:, k] = Xi[idxs, :, :].sum(axis=(0, 2))/Xi.sum(axis=(0, 2))
-
-    Initial = Xi[0].sum(axis=0)
-
-    return Transition, Emission, Initial.reshape(M, 1)
-
-
-def baum_welch(Observation, Transition, Emission, Initial, iterations=1000):
-    """
-    Performs the Baum-Welch algorithm for finding locally optimal
-    transition and emission probabilities for a Hidden Markov Model.
-
-    Args:
-        Observations: numpy.ndarray - (T,) Index of the observation.
-            T: Number of observations.
-        Transition: numpy.ndarray - (M, M) Initialized transition
-        probabilities.
-            M: Number of hidden states.
-        Emission: numpy.ndarray - (M, N) Initialized emission probabilities.
-            N: Number of output states.
-        Initial: numpy.ndarray - (M, 1) Initialized starting probabilities.
-        iterations: Number of times expectation-maximization should
-        be performed.
-
-    Return:
-        Converged Transition, Emission, or None, None on failure.
+    function that performs the Baum-Welch algorithm for a hidden markov model
     """
 
-    if type(Observation) is not np.ndarray or Observation.ndim != 1:
+    # Initial: shape (N, 1), N: number of hidden states
+    if not isinstance(Initial, np.ndarray) or Initial.ndim != 2:
         return None, None
-    if Observation.shape[0] == 0:
+    if Initial.shape[1] != 1:
         return None, None
-    if type(Emission) is not np.ndarray or Emission.ndim != 2:
+    if not np.isclose(np.sum(Initial, axis=0), [1])[0]:
         return None, None
-    if type(Transition) is not np.ndarray or Transition.ndim != 2:
+    # Transition: shape (N, N)
+    if not isinstance(Transition, np.ndarray) or Transition.ndim != 2:
         return None, None
-    if type(Initial) is not np.ndarray or len(Initial) != Transition.shape[0]:
+    if Transition.shape[0] != Initial.shape[0]:
         return None, None
-    if type(iterations) is not int or iterations <= 0:
+    if Transition.shape[1] != Initial.shape[0]:
+        return None, None
+    if not np.isclose(np.sum(Transition, axis=1),
+                      np.ones(Initial.shape[0])).all():
+        return None, None
+    # Observation: shape (T,), T: number of observations
+    if not isinstance(Observations, np.ndarray) or Observations.ndim != 1:
+        return None, None
+    # Emission: shape (N, M), M: number of all possible observations
+    if not isinstance(Emission, np.ndarray) or Emission.ndim != 2:
+        return None, None
+    if not np.sum(Emission, axis=1).all():
+        return None, None
+    if not np.isclose(np.sum(Emission, axis=1),
+                      np.ones(Emission.shape[0])).all():
+        return None, None
+    # Iterations: number of times expectation-maximization should be performed
+    if not isinstance(iterations, int) or iterations < 0:
         return None, None
 
-    for i in range(iterations):
-        Transition, Emission, Initial = EM(
-            Observation, Transition, Emission, Initial)
+    # N: Number of hidden states
+    N = Initial.shape[0]
+    # print("N:", N)
+    # T: Number of observations
+    T = Observations.shape[0]
+    # print("T:", T)
+    # M: Number of output states (observations)
+    M = Emission.shape[1]
 
-    return Transition, Emission
+    a = Transition
+    b = Emission
+    # Make deep copies of "a" and "b" for early stop
+    a_prev = np.copy(a)
+    b_prev = np.copy(b)
+
+    # for iteration in range(iterations):
+    for iteration in range(1000):
+        # print("iteration {}:".format(iteration))
+
+        # Make calls to forward() and backward() to compute
+        # F: alpha, aggregate helper variable; shape (N, T)
+        # B: beta, aggregate helper variable; shape (N, T)
+        PF, F = forward(Observations, b, a, Initial)
+        PB, B = backward(Observations, b, a, Initial)
+
+        # Compute X: ki, aggregate helper variable (Baum-Welch)
+        X = np.zeros((N, N, T - 1))
+        NUM = np.zeros((N, N, T - 1))
+        for t in range(T - 1):
+            # DEN = np.zeros((N, N))
+            for i in range(N):
+                for j in range(N):
+                    Fit = F[i, t]
+                    aij = a[i, j]
+                    bjt1 = b[j, Observations[t + 1]]
+                    Bjt1 = B[j, t + 1]
+                    NUM[i, j, t] = Fit * aij * bjt1 * Bjt1
+        # print("NUM:", NUM)
+        DEN = np.sum(NUM, axis=(0, 1))
+        X = NUM / DEN
+        # print("X:", X, X.shape)
+        # print("X:", X.shape)
+
+        # Compute G: gamma, aggregate helper variable (Viterbi)
+        # G_bis = np.sum(X, axis=1)
+        # print("G_bis:", G_bis[:,-2:], G_bis.shape)
+        G = np.zeros((N, T))
+        NUM = np.zeros((N, T))
+        for t in range(T):
+            for i in range(N):
+                Fit = F[i, t]
+                Bit = B[i, t]
+                NUM[i, t] = Fit * Bit
+        # print("NUM:", NUM)
+        DEN = np.sum(NUM, axis=0)
+        # print("DEN:", DEN)
+        G = NUM / DEN
+        # print("G:", G[:,-2:], G.shape)
+
+        # Update the Transition matrix "a"
+        a = np.sum(X, axis=2) / np.sum(G[:, :T - 1], axis=1)[..., np.newaxis]
+        # print("a:", a, a.shape)
+
+        # Update the Emission matrix "b"
+        DEN = np.sum(G, axis=1)
+        # print("DEN:", DEN, DEN.shape)
+        # print("b.shape:", b.shape)
+        NUM = np.zeros((N, M))
+        for k in range(M):
+            NUM[:, k] = np.sum(G[:, Observations == k], axis=1)
+        b = NUM / DEN[..., np.newaxis]
+        # print("b:", b, b.shape)
+
+        # Early stopping; exit condition on "a" and "b"
+        if np.all(np.isclose(a, a_prev)) or np.all(np.isclose(a, a_prev)):
+            return a, b
+
+        # Make deep copies of "a" and "b" (for early stop)
+        a_prev = np.copy(a)
+        b_prev = np.copy(b)
+
+    return a, b
